@@ -23,6 +23,9 @@ share = 0
 discount_threshold = 0.1
 discount_mean = -0.04
 
+position_flag = 0
+stop_loss_flag = 1
+
 def maxDrawDownChg(L):
     max_val = 0
     max_drawdown =0
@@ -51,7 +54,6 @@ if __name__ == '__main__':
     last_exe_px_adj = 0
     #%% backest
     trade_log_df = pd.DataFrame([], columns = ['timestamp', 'exe_px', 'exe_px_adj', 'nav', 'net_diff', 'side', 'share', 'commission', 'market_val', 'cash', 'net_asset', 'net_asset_norm', 'chg'])
-    position_flag = 0
     hit_count = 0    
     
     date_list = list(set(etf_df.Date.dt.date))
@@ -97,7 +99,10 @@ if __name__ == '__main__':
                 trade_log_df.loc[len(trade_log_df)] = [timestamp, exe_px, exe_px_adj, nav, net_diff, side, share, commission, market_val, cash, net_asset, net_asset_norm, chg]
                 hit_count += 1
                 continue
-        
+            
+            # sell stop loss
+            if stop_loss_flag == 1 and             
+            
         # close the position each day
         if position_flag == 1:
             position_flag = 0
@@ -111,34 +116,39 @@ if __name__ == '__main__':
             trade_log_df.loc[len(trade_log_df)] = [timestamp, exe_px, exe_px_adj, nav, net_diff, side, share, commission, market_val, cash, net_asset, net_asset_norm, chg]
     
     #%% evaluate
-    evaluate_df = pd.DataFrame([], columns = ['max_drawdown_chg', 'sharp_ratio', 'hit_ratio', 'max_daily_loss', 'max_trade_loss'])
-    daily_pnl_df = pd.DataFrame([], columns = ['date', 'net_asset', 'net_asset_norm', 'chg'])
-    daily_pnl_df.loc[:, 'date'] = date_list
-    for id, row in daily_pnl_df.iterrows():
-        date = daily_pnl_df.loc[id, 'date']
+    evaluate_df = pd.DataFrame([], columns = ['trade_count', 'daily_count', 'max_drawdown_chg', 'sharp_ratio', 'hit_ratio', 'max_trade_gain', 'max_daily_gain','max_trade_loss', 'max_daily_loss', 'total_return'])
+    daily_log_df = pd.DataFrame([], columns = ['date', 'net_asset', 'net_asset_norm', 'chg'])
+    daily_log_df.loc[:, 'date'] = date_list
+    for id, row in daily_log_df.iterrows():
+        date = daily_log_df.loc[id, 'date']
         mask = (trade_log_df.timestamp.dt.date == date)
         if sum(mask) > 0:
-            daily_pnl_df.loc[id, 'net_asset'] = trade_log_df.loc[mask, :].iloc[-1]['net_asset']
-            daily_pnl_df.loc[id, 'net_asset_norm'] = trade_log_df.loc[mask, :].iloc[-1]['net_asset_norm']
+            daily_log_df.loc[id, 'net_asset'] = trade_log_df.loc[mask, :].iloc[-1]['net_asset']
+            daily_log_df.loc[id, 'net_asset_norm'] = trade_log_df.loc[mask, :].iloc[-1]['net_asset_norm']
         elif sum(mask) == 0 and id > 0:
-            daily_pnl_df.loc[id, 'net_asset'] = daily_pnl_df.loc[id - 1, 'net_asset']
-            daily_pnl_df.loc[id, 'net_asset_norm'] = daily_pnl_df.loc[id - 1, 'net_asset_norm']
+            daily_log_df.loc[id, 'net_asset'] = daily_log_df.loc[id - 1, 'net_asset']
+            daily_log_df.loc[id, 'net_asset_norm'] = daily_log_df.loc[id - 1, 'net_asset_norm']
         else:
-            daily_pnl_df.loc[id, 'net_asset'] = initial_net_asset
-            daily_pnl_df.loc[id, 'net_asset_norm'] = 1
+            daily_log_df.loc[id, 'net_asset'] = initial_net_asset
+            daily_log_df.loc[id, 'net_asset_norm'] = 1
     
-    daily_pnl_df.loc[0, 'chg'] = 0
-    daily_pnl_df.loc[1:, 'chg'] = (daily_pnl_df.iloc[1:]['net_asset'].values / daily_pnl_df.iloc[:-1]['net_asset'].values) - 1
+    daily_log_df.loc[0, 'chg'] = 0
+    daily_log_df.loc[1:, 'chg'] = (daily_log_df.iloc[1:]['net_asset'].values / daily_log_df.iloc[:-1]['net_asset'].values) - 1
     
-    max_drawdown_chg = maxDrawDownChg(daily_pnl_df.net_asset.tolist())
-    sharp_ratio = np.sqrt(252)*daily_pnl_df.chg.mean() / daily_pnl_df.chg.std()
-    hit_ratio = hit_count / (len(trade_log_df)/2)   
-    max_daily_loss = min(daily_pnl_df.chg)
+    trade_count = len(trade_log_df)/2
+    daily_count = len(daily_log_df)
+    max_drawdown_chg = maxDrawDownChg(daily_log_df.net_asset.tolist())
+    sharp_ratio = np.sqrt(252)*daily_log_df.chg.mean() / daily_log_df.chg.std()
+    hit_ratio = hit_count / (len(trade_log_df)/2)
+    max_daily_gain = max(daily_log_df.chg)
+    max_trade_gain = max(trade_log_df.chg)
+    max_daily_loss = min(daily_log_df.chg)
     max_trade_loss = min(trade_log_df.chg)
-    evaluate_df.loc[0] = [max_drawdown_chg, sharp_ratio, hit_ratio, max_daily_loss, max_trade_loss]   
+    total_return = daily_log_df.iloc[-1]['net_asset_norm']
+    evaluate_df.loc[0] = [trade_count, daily_count, max_drawdown_chg, sharp_ratio, hit_ratio, max_trade_gain, max_daily_gain, max_trade_loss, max_daily_loss, total_return]   
     
     #%% plot
-    xs = daily_pnl_df.net_asset_norm.tolist()
+    xs = daily_log_df.net_asset_norm.tolist()
     i = np.argmax(np.maximum.accumulate(xs) - xs) # end of the period
     j = np.argmax(xs[:i]) # start of period
 #    maxdropdownchg = (xs[j] - xs[i]) / xs[j]
