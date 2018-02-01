@@ -107,7 +107,7 @@ if __name__ == '__main__':
                 continue
                 
             # sell
-            if position_flag == 1 and exe_px_adj - last_exe_px_adj_b >= tick_size*tick_num and net_diff > 0.12:
+            if position_flag == 1 and exe_px_adj - last_exe_px_adj_b >= tick_size*tick_num and net_diff > 0.10:
                 position_flag = 0
                 side = 's'
                 commission = max(0.35, min(commission_rate*share, exe_px_adj * share*0.005))
@@ -123,7 +123,7 @@ if __name__ == '__main__':
                 continue
             
             # sell stop loss
-            if stop_loss_flag == 1 and position_flag == 1 and (exe_px_adj / last_exe_px_adj_b) - 1 < stop_loss_threshold:
+            if stop_loss_flag == 1 and position_flag == 1 and (exe_px_adj / last_exe_px_adj_b) - 1 < stop_loss_threshold:# exe_px_adj - last_exe_px_adj_b <= -tick_size*2
                 position_flag = 0
                 side = 's'
                 commission = max(0.35, min(commission_rate*share, exe_px_adj * share*0.005))
