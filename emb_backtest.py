@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import sys
 
 PATH = r"emb.xlsx"
-
+# 1. net dynmaic gain/loss, cut loss by abs px or net 2. last 30 min not do 3. next buy better than sell, use abs px or net
     
 tick_size = 0.01
 commission_rate = 0.0035# ibkr fix:0.005 tired:0.0035
