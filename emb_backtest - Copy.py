@@ -25,6 +25,7 @@ share = 0
 discount_threshold = 0.1
 stop_loss_threshold = -0.0001
 tick_num = 3
+tick_num_stop_loss = 10
 position_flag = 0
 stop_loss_flag = 1
 cut_loss_flag = 1
@@ -119,14 +120,14 @@ if __name__ == '__main__':
 #                    last_exe_px_adj_s = trade_log_df.loc[(trade_log_df.timestamp.dt.date == date) & (trade_log_df.side == 's'), 'exe_px_adj'].iloc[-1]
 #                except:
 #                    pass
-            
+            # exit
             if cut_loss_flag == 1 and loss_count - gain_count >= 2:
                 print(date)
                 break
             # buy
             if (buy_count >= 0 and position_flag == 0 and net_diff < discount_threshold) \
             and (timestamp.time() <= dt.time(15, 30) ):
-                #or (buy_count > 0 and position_flag == 0 and net_diff < discount_threshold and (exe_px_adj / last_exe_px_adj_s - 1) < -0.003):
+#            or (buy_count > 0 and position_flag == 0 and net_diff < discount_threshold and (exe_px_adj / last_exe_px_adj_s - 1) < -0.003):
                 if exe_px_adj > last_exe_px_adj_b:
                     headwind_buy_count += 1
                     
@@ -170,7 +171,7 @@ if __name__ == '__main__':
                 continue
             
             # sell stop loss
-            if stop_loss_flag == 1 and position_flag == 1 and exe_px_adj - last_exe_px_adj_b <= -tick_size*10: #and (exe_px_adj / last_exe_px_adj_b) - 1 < stop_loss_threshold:
+            if stop_loss_flag == 1 and position_flag == 1 and exe_px_adj - last_exe_px_adj_b <= -tick_size*tick_num_stop_loss: #and (exe_px_adj / last_exe_px_adj_b) - 1 < stop_loss_threshold:
                 position_flag = 0
                 side = 's'
                 commission = max(0.35, min(commission_rate*share, exe_px_adj * share*0.005))
